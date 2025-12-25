@@ -4,7 +4,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
-const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database');
 
 // Load env vars
@@ -31,13 +30,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
 app.use(cors());
 
-// Rate limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use('/api/', limiter);
-
 // Dev logging middleware
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
@@ -58,31 +50,18 @@ app.use('/api/public', publicRoutes);
 app.use((err, req, res, next) => {
     console.error(err.stack);
 
-    // Multer file upload error
     if (err.name === 'MulterError') {
-        return res.status(400).json({
-            success: false,
-            message: err.message
-        });
+        return res.status(400).json({ success: false, message: err.message });
     }
 
-    // JWT error
     if (err.name === 'JsonWebTokenError') {
-        return res.status(401).json({
-            success: false,
-            message: 'Invalid token'
-        });
+        return res.status(401).json({ success: false, message: 'Invalid token' });
     }
 
-    // JWT expired
     if (err.name === 'TokenExpiredError') {
-        return res.status(401).json({
-            success: false,
-            message: 'Token expired'
-        });
+        return res.status(401).json({ success: false, message: 'Token expired' });
     }
 
-    // Default error
     res.status(err.status || 500).json({
         success: false,
         message: err.message || 'Server Error'
@@ -104,8 +83,7 @@ const server = app.listen(PORT, () => {
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
+process.on('unhandledRejection', (err) => {
     console.log(`Error: ${err.message}`);
-    // Close server & exit process
     server.close(() => process.exit(1));
 });
