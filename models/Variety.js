@@ -39,7 +39,11 @@ const varietySchema = new mongoose.Schema({
     specialCharacteristics: [String],
     notes: String,
     detailedDescription: String,
-    image: String,
+    // Changed from filename string to Base64 string
+    image: {
+        data: String, // Base64 encoded image
+        contentType: String // e.g., 'image/jpeg', 'image/png'
+    },
     threatLevel: {
         type: String,
         enum: ['critically_endangered', 'endangered', 'vulnerable', 'not_threatened'],

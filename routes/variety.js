@@ -3,7 +3,7 @@ const router = express.Router();
 const varietyController = require('../controllers/varietyController');
 const { protect } = require('../middleware/auth');
 const authorize = require('../middleware/role');
-const upload = require('../middleware/upload');
+const { validateImage } = require('../middleware/imageHandler'); // New middleware
 const { varietyValidation } = require('../utils/validators');
 const { validationResult } = require('express-validator');
 
@@ -29,8 +29,8 @@ router.get('/:id', varietyController.getVarietyById);
 
 // Protected routes for authenticated users
 router.get('/user/mine', protect, authorize('farmer', 'institution', 'admin'), varietyController.getUserVarieties);
-router.post('/', protect, authorize('farmer', 'institution', 'admin'), upload, validate(varietyValidation), varietyController.createVariety);
-router.put('/:id', protect, authorize('farmer', 'institution', 'admin'), upload, varietyController.updateVariety);
+router.post('/', protect, authorize('farmer', 'institution', 'admin'), validateImage, validate(varietyValidation), varietyController.createVariety); // Added validateImage middleware
+router.put('/:id', protect, authorize('farmer', 'institution', 'admin'), validateImage, varietyController.updateVariety); // Added validateImage middleware
 router.delete('/:id', protect, authorize('farmer', 'institution', 'admin'), varietyController.deleteVariety);
 
 // Admin only routes

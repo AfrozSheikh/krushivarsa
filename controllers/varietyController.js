@@ -15,7 +15,8 @@ exports.createVariety = async (req, res) => {
             specialCharacteristics,
             notes,
             detailedDescription,
-            threatLevel
+            threatLevel,
+            image // Now expecting Base64 image data
         } = req.body;
 
         // Check if crop exists
@@ -71,7 +72,7 @@ exports.createVariety = async (req, res) => {
             notes,
             detailedDescription,
             threatLevel,
-            image: req.file ? req.file.filename : null,
+            image: image || null, // Store the image object from middleware
             verificationStatus: user.role === 'admin' ? 'verified' : 'pending',
             isVerified: user.role === 'admin',
             verifiedBy: user.role === 'admin' ? user.id : null,
@@ -100,6 +101,61 @@ exports.createVariety = async (req, res) => {
         });
     }
 };
+
+// ... (other functions remain the same, just remove file upload references)
+
+exports.updateVariety = async (req, res) => {
+    try {
+        const variety = await Variety.findById(req.params.id);
+
+        if (!variety) {
+            return res.status(404).json({
+                success: false,
+                message: 'Variety not found'
+            });
+        }
+
+        // Check permissions
+        if (req.user.role !== 'admin' && variety.contributor.toString() !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to update this variety'
+            });
+        }
+
+        // Update fields
+        const updates = req.body;
+        if (updates.specialCharacteristics && typeof updates.specialCharacteristics === 'string') {
+            updates.specialCharacteristics = updates.specialCharacteristics.split(',').map(item => item.trim());
+        }
+
+        // If admin is verifying
+        if (req.user.role === 'admin' && updates.verificationStatus) {
+            updates.isVerified = updates.verificationStatus === 'verified';
+            updates.verifiedBy = req.user.id;
+            updates.verificationDate = Date.now();
+        }
+
+        const updatedVariety = await Variety.findByIdAndUpdate(
+            req.params.id,
+            updates,
+            { new: true, runValidators: true }
+        ).populate('crop', 'name');
+
+        res.json({
+            success: true,
+            variety: formatVariety(updatedVariety)
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
+
+// ... (other functions remain the same)
 
 exports.getAllVarieties = async (req, res) => {
     try {
@@ -196,60 +252,7 @@ exports.getVarietyById = async (req, res) => {
     }
 };
 
-exports.updateVariety = async (req, res) => {
-    try {
-        const variety = await Variety.findById(req.params.id);
 
-        if (!variety) {
-            return res.status(404).json({
-                success: false,
-                message: 'Variety not found'
-            });
-        }
-
-        // Check permissions
-        if (req.user.role !== 'admin' && variety.contributor.toString() !== req.user.id) {
-            return res.status(403).json({
-                success: false,
-                message: 'Not authorized to update this variety'
-            });
-        }
-
-        // Update fields
-        const updates = req.body;
-        if (updates.specialCharacteristics && typeof updates.specialCharacteristics === 'string') {
-            updates.specialCharacteristics = updates.specialCharacteristics.split(',').map(item => item.trim());
-        }
-
-        if (req.file) {
-            updates.image = req.file.filename;
-        }
-
-        // If admin is verifying
-        if (req.user.role === 'admin' && updates.verificationStatus) {
-            updates.isVerified = updates.verificationStatus === 'verified';
-            updates.verifiedBy = req.user.id;
-            updates.verificationDate = Date.now();
-        }
-
-        const updatedVariety = await Variety.findByIdAndUpdate(
-            req.params.id,
-            updates,
-            { new: true, runValidators: true }
-        ).populate('crop', 'name');
-
-        res.json({
-            success: true,
-            variety: formatVariety(updatedVariety)
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
-    }
-};
 
 exports.deleteVariety = async (req, res) => {
     try {

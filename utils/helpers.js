@@ -14,7 +14,7 @@ const formatUser = (user) => {
 };
 
 const formatVariety = (variety) => {
-    return {
+    const formattedVariety = {
         id: variety._id,
         crop: variety.crop,
         name: variety.name,
@@ -25,12 +25,29 @@ const formatVariety = (variety) => {
         specialCharacteristics: variety.specialCharacteristics,
         notes: variety.notes,
         detailedDescription: variety.detailedDescription,
-        image: variety.image ? `/uploads/images/${variety.image}` : null,
         threatLevel: variety.threatLevel,
         isVerified: variety.isVerified,
         verificationStatus: variety.verificationStatus,
         createdAt: variety.createdAt
     };
+
+    // Format image for response
+    if (variety.image && variety.image.data) {
+        if (variety.image.data.startsWith('data:image/')) {
+            // Already a data URL
+            formattedVariety.image = variety.image.data;
+        } else if (variety.image.contentType) {
+            // Convert to data URL
+            formattedVariety.image = `data:${variety.image.contentType};base64,${variety.image.data}`;
+        } else {
+            // Fallback to just the data
+            formattedVariety.image = variety.image.data;
+        }
+    } else {
+        formattedVariety.image = null;
+    }
+
+    return formattedVariety;
 };
 
 const getDashboardStats = async (Crop, Variety, User) => {

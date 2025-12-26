@@ -64,11 +64,20 @@ exports.getAllPublicVarieties = async (req, res) => {
             Variety.countDocuments(query)
         ]);
 
-        // Format image URLs
-        const formattedVarieties = varieties.map(variety => ({
-            ...variety.toObject(),
-            image: variety.image ? `/uploads/images/${variety.image}` : null
-        }));
+        // Format varieties using helper
+        const formattedVarieties = varieties.map(variety => {
+            const varietyObj = variety.toObject();
+            const formatted = {
+                ...varietyObj,
+                // Use formatVariety helper or custom format
+                image: variety.image && variety.image.data 
+                    ? (variety.image.data.startsWith('data:image/') 
+                        ? variety.image.data 
+                        : `data:${variety.image.contentType || 'image/jpeg'};base64,${variety.image.data}`)
+                    : null
+            };
+            return formatted;
+        });
 
         res.json({
             success: true,
@@ -104,11 +113,21 @@ exports.getPublicVarietyById = async (req, res) => {
             });
         }
 
-        // Format image URL
-        const formattedVariety = {
-            ...variety.toObject(),
-            image: variety.image ? `/uploads/images/${variety.image}` : null
-        };
+        // Format image
+        const formattedVariety = variety.toObject();
+        if (formattedVariety.image && formattedVariety.image.data) {
+            if (formattedVariety.image.data.startsWith('data:image/')) {
+                // Already a data URL
+                formattedVariety.image = formattedVariety.image.data;
+            } else if (formattedVariety.image.contentType) {
+                // Convert to data URL
+                formattedVariety.image = `data:${formattedVariety.image.contentType};base64,${formattedVariety.image.data}`;
+            } else {
+                formattedVariety.image = formattedVariety.image.data;
+            }
+        } else {
+            formattedVariety.image = null;
+        }
 
         res.json({
             success: true,
@@ -122,6 +141,8 @@ exports.getPublicVarietyById = async (req, res) => {
         });
     }
 };
+
+// ... (rest of the functions remain the same)
 
 exports.getActiveNotices = async (req, res) => {
     try {
